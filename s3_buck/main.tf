@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "wes3" {
-  bucket = "abhinav_buck"
+  bucket = "abhinav-buck"
 
   tags = {
     Name: "Abhinav-bucket"
