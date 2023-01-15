@@ -1,36 +1,141 @@
-# This is a basic workflow to help you get started with Actions
+name : Deployment
 
-name: CI
 
-# Controls when the workflow will run
-on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
-  # Allows you to run this workflow manually from the Actions tab
+on :
+
+  push :
+
+    branches : ["main"]
+
+ 
+
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    inputs :
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+      
+      region :
+
+        description: "Region : "
+
+        required: true  
+
+        type: string    
+
+
+
+env :
+
+  bucket : teststorage1983
+
+  tfstate_file : abhinav.tfstate
+
+  region: ${{ github.event.inputs.region }}
+
+ 
+
+jobs :
+
+  job1 :
+
+    runs-on : ubuntu-latest
+
+
+
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+
       - uses: actions/checkout@v3
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Terraform hashicorp setup
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+        uses: hashicorp/setup-terraform@v2
+
+        with:
+
+          terraform_version: 1.1.7
+
+
+
+      - name: Configure AWS Credentials
+
+        uses: aws-actions/configure-aws-credentials@v1
+
+        with:
+
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+
+          aws-region: ${{ env.region }}
+
+
+
+      - name: terraform init
+
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          cd s3_buck
+          terraform init -reconfigure 
+      - name: terraform plan
+
+        run: |
+          cd s3_buck
+          terraform plan 
+      - name: terraform apply
+
+        run: |
+          cd s3_buck
+          terraform apply -auto-approve
+         
+     
+  
+  job2 :
+
+    needs : job1
+    
+
+    runs-on : ubuntu-latest
+
+
+
+    steps:
+
+      - uses: actions/checkout@v3
+
+      - name: Terraform hashicorp setup
+
+        uses: hashicorp/setup-terraform@v2
+
+        with:
+
+          terraform_version: 1.1.7
+
+
+
+      - name: Configure AWS Credentials
+
+        uses: aws-actions/configure-aws-credentials@v1
+
+        with:
+
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+
+          aws-region: ${{ env.region }}
+
+
+      - name: terraform init
+
+        run: |
+        
+          terraform init -reconfigure -backend-config="bucket=${{ env.bucket }}" -backend-config="key=${{ env.tfstate_file}}" 
+      - name: terraform apply
+
+        run: |
+          
+          terraform apply -auto-approve
